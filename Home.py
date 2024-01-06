@@ -12,10 +12,16 @@ st.title("Gold Calculator :sparkles:")
 st.write(
     "Welcome to the Gold Calculator, your one-stop solution for all your gold purchasing or selling needs."
 )
-st.toast(
-    "**Please select an option from the sidebar to get started**",
-    icon="✨",
-)
+if "mesage_shown" not in st.session_state:
+    st.toast(
+        "**Please select an option from the sidebar to get started**",
+        icon="✨",
+    )
+    st.toast(
+        "**More features coming soon!**",
+        icon="✨",
+    )
+    st.session_state["mesage_shown"] = True
 
 st.markdown("")
 
