@@ -30,7 +30,7 @@ col1, col2 = st.columns([1, 2], gap="small")
 with col1:
     st.markdown(" - :green[**Save Money**]:")
 with col2:
-    st.markdown("Get the best deal by comparing different options.")
+    st.markdown("Don't pay more than you should.")
 
 col1, col2 = st.columns([1, 2], gap="small")
 with col1:
