@@ -9,6 +9,7 @@ webdriver-manager = "*"
 pytz = "*"
 streamlit = "*"
 streamlit-extras = "*"
+latexify-py = "*"
 
 [dev-packages]
 
