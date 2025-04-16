@@ -31,7 +31,7 @@ with st.container():
             value=1,
         )
         weight = st.number_input(
-            "Enter the weight of each item (grams)", value=1.000, step=0.001
+            "Enter the weight of each item (grams)", value=1.000, step=0.001, format="%.3f"
         )
         making_charge_perc = st.number_input(
             "Making charge percentage", value=14.00, step=0.01
