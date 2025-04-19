@@ -11,7 +11,7 @@ with col1:
     if is_22k:
         gold_rate = st.number_input(
             "Enter the gold rate (22k per gram)",
-            value=6500.00,
+            value=9070.00,
             step=0.01,
         )
     else:
