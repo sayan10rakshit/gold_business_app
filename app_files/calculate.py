@@ -98,11 +98,11 @@ def gold_making_charges(
         gold_rate = gold_rate * (carat / 24)
 
     expr_1 = 1 + gst / 100
-    expr_2 = gold_rate * gold_weight
+    expr_2 = gold_rate * gold_weight # price of gold for the ornament 
     expr_3 = total_price - expr_1 * (extra_charges + hm_charges * no_pcs)
 
     making_charge_perc = ((expr_3 / expr_2) - expr_1) * (100 / expr_1)
-    making_charges = making_charge_perc / 100 * gold_rate
+    making_charges = (making_charge_perc / 100) * expr_2
 
     return (
         making_charge_perc,
