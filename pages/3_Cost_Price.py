@@ -12,7 +12,7 @@ with st.container():
         if is_22k:
             gold_rate = st.number_input(
                 "Enter the gold rate (22k per gram)",
-                value=6500.00,
+                value=9070.00,
                 step=0.01,
             )
         else:
@@ -25,7 +25,7 @@ with st.container():
             "Enter the making charge percentage", value=4.00, step=0.01
         )
         total_weight = st.number_input(
-            "Enter the weight of gold (grams)", value=1.000, step=0.001
+            "Enter the weight of gold (grams)", value=1.000, step=0.001, format="%.3f"
         )
         keep_baseline_916 = st.toggle(
             "Keep the baseline as 0.9166",
