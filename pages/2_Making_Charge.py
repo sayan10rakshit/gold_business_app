@@ -21,7 +21,7 @@ with col1:
             step=0.01,
         )
     gold_weight = st.number_input(
-        "Enter the weight of gold (grams)", value=1.000, step=0.001
+        "Enter the weight of gold (grams)", value=1.000, step=0.001, format="%.3f"
     )
     total_price = st.number_input("Enter the total price", value=7058.55)
     hm_charges = st.number_input("Enter the Hallmark charges", value=45)
