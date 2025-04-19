@@ -14,7 +14,7 @@ with st.container():
         if is_22k:
             gold_rate = st.number_input(
                 "Enter the gold rate (22k per gram)",
-                value=6500.00,
+                value=9070.00,
                 step=0.01,
             )
         else:
@@ -91,7 +91,7 @@ with st.container():
             with col1:
                 st.markdown(f":green[₹**{hm_charges:,.2f}**]")
             with col2:
-                st.markdown("""**(₹45/pc.)**""")
+                st.markdown("""**(₹53/pc.)**""")
 
         st.write("Tax (GST):")
         col1, col2 = st.columns([1, 1], gap="small")
