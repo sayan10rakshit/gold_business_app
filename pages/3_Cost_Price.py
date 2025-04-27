@@ -12,7 +12,11 @@ with st.container():
         if is_22k:
             gold_rate = st.number_input(
                 "Enter the gold rate (22k per gram)",
+<<<<<<< HEAD
                 value=9000.00,
+=======
+                value=9070.00,
+>>>>>>> 6c35903138b721b14c3e80ed778e818d41bfe06e
                 step=0.01,
             )
         else:

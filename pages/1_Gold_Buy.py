@@ -66,8 +66,13 @@ with st.container():
 
         if is_22k:
             gold_rate = st.number_input(
+<<<<<<< HEAD
                 "Enter the gold rate (22k/18k per gram)",
                 value=default_22k_rate,
+=======
+                "Enter the gold rate (22k per gram)",
+                value=9070.00,
+>>>>>>> 6c35903138b721b14c3e80ed778e818d41bfe06e
                 step=0.01,
                 format="%.2f",
                 key="gold_rate_buy",
