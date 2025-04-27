@@ -7,7 +7,7 @@ name = "pypi"
 selenium = "*"
 webdriver-manager = "*"
 pytz = "*"
-streamlit = "*"
+streamlit = "==1.44.0"
 streamlit-extras = "*"
 latexify-py = "*"
 

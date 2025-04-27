@@ -3,6 +3,7 @@ def gold_sell(
     qty=1,
     weight=1,
     making_charge_perc=14,
+    hm_charges_per_pc=53,
     extra_charges=0,
     carat=22,
     is_22k=True,
@@ -14,7 +15,7 @@ def gold_sell(
         hm_rate = gold_rate * (carat / 24)
     gold_charges = hm_rate * weight
     making_charges = gold_charges * (making_charge_perc / 100) + extra_charges
-    hm_charges = 45 * qty
+    hm_charges = hm_charges_per_pc * qty
 
     tax = (total_before_tax := gold_charges + making_charges + hm_charges) * 0.03
     total_price = total_before_tax + tax
@@ -102,7 +103,7 @@ def gold_making_charges(
     expr_3 = total_price - expr_1 * (extra_charges + hm_charges * no_pcs)
 
     making_charge_perc = ((expr_3 / expr_2) - expr_1) * (100 / expr_1)
-    making_charges = making_charge_perc / 100 * gold_rate
+    making_charges = (making_charge_perc / 100) * expr_2
 
     return (
         making_charge_perc,
