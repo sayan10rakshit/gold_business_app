@@ -35,11 +35,7 @@ with col1:
     if is_22k:
         gold_rate = st.number_input(
             "Enter the gold rate (22k per gram)",
-<<<<<<< HEAD
             value=st.session_state.gold_rate,
-=======
-            value=9070.00,
->>>>>>> 6c35903138b721b14c3e80ed778e818d41bfe06e
             step=0.01,
             key="gold_rate_mc",
             on_change=lambda: setattr(
@@ -57,7 +53,6 @@ with col1:
             ),
         )
     gold_weight = st.number_input(
-<<<<<<< HEAD
         "Enter the weight of gold (grams)",
         value=st.session_state.gold_weight,
         step=0.001,
@@ -80,12 +75,6 @@ with col1:
             st.session_state, "hm_charges_per_pc", st.session_state.hm_charges_mc
         ),
     )
-=======
-        "Enter the weight of gold (grams)", value=1.000, step=0.001, format="%.3f"
-    )
-    total_price = st.number_input("Enter the total price", value=7058.55)
-    hm_charges = st.number_input("Enter the Hallmark charges", value=53)
->>>>>>> 6c35903138b721b14c3e80ed778e818d41bfe06e
     no_pcs = st.number_input(
         "Enter the number of ornament pieces",
         value=st.session_state.qty,
