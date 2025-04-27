@@ -298,9 +298,13 @@ with col_btn:
                     )
             else:
                 st.session_state["live_rates"] = rates_data
-                st.session_state["last_fetch_error"] = (
-                    None  # Store the gold rate for use in calculator pages
-                )
+                st.session_state["last_fetch_error"] = None
+
+                # Reset the user_modified_gold_rate flag when fetching new rates
+                # This allows the new rates to be applied to all pages
+                if "user_modified_gold_rate" in st.session_state:
+                    del st.session_state["user_modified_gold_rate"]
+
                 if "Gold 995 100gms Ready" in rates_data:
                     try:
                         # Extract and clean the rate value
@@ -320,10 +324,37 @@ with col_btn:
                         # Ceiling to the next 500
                         import math
 
-                        rate_916 = math.ceil(rate_916 / 500) * 500
-
-                        # Store the 916 gold rate for display and use in calculator pages
+                        rate_916 = (
+                            math.ceil(rate_916 / 500) * 500
+                        )  # Store the 916 gold rate for display and use in calculator pages
                         st.session_state["gold_rate_916"] = rate_916
+
+                        # Reset the user_modified_gold_rate flag when fetching new rates
+                        if "user_modified_gold_rate" in st.session_state:
+                            del st.session_state["user_modified_gold_rate"]
+
+                        # Update the gold_rate in session state for all calculator pages
+                        if "is_22k" in st.session_state and st.session_state.is_22k:
+                            st.session_state.gold_rate = float(
+                                rate_916 / 10
+                            )  # Convert to per gram
+                        else:
+                            # For 24k, use the direct rate
+                            st.session_state.gold_rate = float(
+                                st.session_state["current_gold_rate_per_gram"]
+                            )
+
+                        # Update the gold_rate session state variable for pages
+                        # Only set the per-gram rate if user hasn't manually set it
+                        if "is_22k" in st.session_state and st.session_state["is_22k"]:
+                            st.session_state.gold_rate = float(
+                                rate_916 / 10
+                            )  # Convert to per gram
+                        else:
+                            # For 24k, use the direct rate
+                            st.session_state.gold_rate = float(
+                                st.session_state["current_gold_rate_per_gram"]
+                            )
                     except (ValueError, KeyError) as e:
                         print(f"Error extracting gold rate for calculator: {e}")
 
@@ -334,6 +365,11 @@ st.markdown("<div style='margin: 20px 0;'></div>", unsafe_allow_html=True)
 if st.session_state["live_rates"] and "timestamp" in st.session_state["live_rates"]:
     timestamp = st.session_state["live_rates"]["timestamp"]
     st.caption(f"Last updated: {timestamp}")
+
+# Add a success message to let users know rates are synchronized
+# This will show whether rates are from fetching or manual entry
+if "gold_rate_916" in st.session_state or "gold_rate" in st.session_state:
+    st.success("✅ Gold rates are now synchronized across all calculator pages!")
 
 # Display rates in a more aesthetically pleasing card format
 with rates_container:

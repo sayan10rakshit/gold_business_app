@@ -56,35 +56,37 @@ with st.container():
             default_22k_rate = float(
                 round((st.session_state["current_gold_rate_per_gram"] / 24.0) * 22.0)
             )
-            default_24k_rate = float(st.session_state["current_gold_rate_per_gram"])
-
-        # Update the session state gold rate based on the toggle
-        if is_22k and st.session_state.gold_rate != default_22k_rate:
+            default_24k_rate = float(
+                st.session_state["current_gold_rate_per_gram"]
+            )  # Only update the session state rate when first loading the page or toggling the carat option
+        # Don't override user's manually entered rate
+        if is_22k and "user_modified_gold_rate" not in st.session_state:
             st.session_state.gold_rate = default_22k_rate
-        elif not is_22k and st.session_state.gold_rate != default_24k_rate:
+        elif not is_22k and "user_modified_gold_rate" not in st.session_state:
             st.session_state.gold_rate = default_24k_rate
+
+        def update_gold_rate():
+            st.session_state.gold_rate = st.session_state.gold_rate_buy
+            # Mark that the user has manually modified the gold rate
+            st.session_state.user_modified_gold_rate = True
 
         if is_22k:
             gold_rate = st.number_input(
                 "Enter the gold rate (22k/18k per gram)",
-                value=default_22k_rate,
+                value=st.session_state.gold_rate,
                 step=0.01,
                 format="%.2f",
                 key="gold_rate_buy",
-                on_change=lambda: setattr(
-                    st.session_state, "gold_rate", st.session_state.gold_rate_buy
-                ),
+                on_change=update_gold_rate,
             )
         else:
             gold_rate = st.number_input(
                 "Enter the gold rate (24k per gram)",
-                value=default_24k_rate,
+                value=st.session_state.gold_rate,
                 step=0.01,
                 format="%.2f",
                 key="gold_rate_buy",
-                on_change=lambda: setattr(
-                    st.session_state, "gold_rate", st.session_state.gold_rate_buy
-                ),
+                on_change=update_gold_rate,
             )
         qty = st.number_input(
             "Enter the quantity of gold (items)",
@@ -143,6 +145,10 @@ with st.container():
             max_value=24,
             step=1,
             value=22,
+            key="carat_buy",
+            on_change=lambda: setattr(
+                st.session_state, "carat", st.session_state.carat_buy
+            ),
         )  # Results
     with col2:
         st.subheader("Results")

@@ -25,6 +25,33 @@ if "is_22k" not in st.session_state:
 
 col1, col2 = st.columns([2, 1], gap="large")
 
+# Initialize the default rates for 22k and 24k
+default_22k_rate = 9000.00
+default_24k_rate = 9818.18  # Approximate 24k equivalent
+
+# Update rates if we have the 916 gold rate available
+if "gold_rate_916" in st.session_state:
+    # Use the 916 (22k) gold rate directly for 22k
+    default_22k_rate = float(
+        st.session_state["gold_rate_916"] / 10
+    )  # Convert from 100g to per gram
+    # Calculate 24k rate: (916 rate / 22 * 24)
+    default_24k_rate = float((st.session_state["gold_rate_916"] / 10) / 22 * 24)
+elif "current_gold_rate_per_gram" in st.session_state:
+    # Fallback to the old calculation method
+    default_22k_rate = float(
+        round((st.session_state["current_gold_rate_per_gram"] / 24.0) * 22.0)
+    )
+    default_24k_rate = float(st.session_state["current_gold_rate_per_gram"])
+
+# Only update the session state rate if this is the first page load
+# or if the user hasn't manually changed the rate
+if "user_modified_gold_rate" not in st.session_state:
+    if st.session_state.is_22k:
+        st.session_state.gold_rate = default_22k_rate
+    else:
+        st.session_state.gold_rate = default_24k_rate
+
 # Input fields
 with col1:
     is_22k = st.toggle(
@@ -32,15 +59,27 @@ with col1:
         value=st.session_state.is_22k,
         key="is_22k_mc",
     )
+
+    # Update gold rate when toggle changes
+    if is_22k != st.session_state.is_22k:
+        st.session_state.is_22k = is_22k
+        if is_22k:
+            st.session_state.gold_rate = default_22k_rate
+        else:
+            st.session_state.gold_rate = default_24k_rate
+
+    def update_gold_rate():
+        st.session_state.gold_rate = st.session_state.gold_rate_mc
+        # Mark that the user has manually modified the gold rate
+        st.session_state.user_modified_gold_rate = True
+
     if is_22k:
         gold_rate = st.number_input(
             "Enter the gold rate (22k per gram)",
             value=st.session_state.gold_rate,
             step=0.01,
             key="gold_rate_mc",
-            on_change=lambda: setattr(
-                st.session_state, "gold_rate", st.session_state.gold_rate_mc
-            ),
+            on_change=update_gold_rate,
         )
     else:
         gold_rate = st.number_input(
@@ -48,9 +87,7 @@ with col1:
             value=st.session_state.gold_rate,
             step=0.01,
             key="gold_rate_mc",
-            on_change=lambda: setattr(
-                st.session_state, "gold_rate", st.session_state.gold_rate_mc
-            ),
+            on_change=update_gold_rate,
         )
     gold_weight = st.number_input(
         "Enter the weight of gold (grams)",
