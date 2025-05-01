@@ -24,7 +24,6 @@ Easily calculate the cost price of the gold and the payment to be made to the go
 
 ## Future Enhancements
 
-- [ ] **Automated Gold & Silver Rates**
 - [ ] **Silver Ornament Calculatorr**
 - [ ] **Gemstone Calculator**
 
