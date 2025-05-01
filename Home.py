@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import (
     StaleElementReferenceException,
@@ -47,7 +48,10 @@ def get_rates_with_selenium():
 
         # Setup the driver
         driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()), options=options
+            service=Service(
+                ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
+            ),
+            options=options,
         )
 
         # Get the dynamic content from the website
