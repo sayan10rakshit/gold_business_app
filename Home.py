@@ -181,7 +181,7 @@ st.set_page_config(
     page_title="Gold Calculator",
     page_icon="✨",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
 # Custom CSS for better styling with dark mode support
