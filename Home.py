@@ -2,6 +2,10 @@ import streamlit as st
 from datetime import datetime
 import pytz
 import json
+import time  # For potential delays or loading indicators
+import re
+import requests
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -11,9 +15,130 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     NoSuchElementException,
 )
-import time  # For potential delays or loading indicators
 
 RATE_DICT = dict()
+
+
+# --- Function to get rates using requests and BeautifulSoup ---
+def get_rates_with_requests():
+    """
+    Alternative method to fetch rates using requests and BeautifulSoup.
+    This is used as a fallback when Selenium fails, especially in cloud environments.
+    """
+    try:
+        # Get the current time in IST
+        ist = pytz.timezone("Asia/Kolkata")
+        ist_time = datetime.now(ist).strftime("%Y-%m-%d %H:%M:%S %Z")
+
+        rates = {"timestamp": ist_time}
+
+        # Add headers to mimic a browser request
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Cache-Control": "max-age=0",
+        }
+
+        # Fetch the webpage content
+        response = requests.get(
+            "https://vickygold.in/Liverate.html", headers=headers, timeout=30
+        )
+        response.raise_for_status()  # Raise an exception for HTTP errors
+
+        # Parse HTML content
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Find gold and silver product tables
+        gold_tables = soup.select("#divProduct #tblLiveRates")
+        silver_tables = soup.select("#silverproduct #tblLiveRates")
+
+        # Process gold rates
+        for table in gold_tables:
+            try:
+                rows = table.select("tr")
+                for row in rows:
+                    symbol_elem = row.select_one("#GoldSymbol")
+                    rate_elem = row.select_one("#GoldSell")
+                    if symbol_elem and rate_elem:
+                        symbol = symbol_elem.get_text().strip()
+                        rate = rate_elem.get_text().strip()
+                        if symbol and rate:
+                            # Add "Gold" prefix if not already present
+                            if "Gold" not in symbol:
+                                symbol = f"Gold {symbol}"
+                            rates[symbol] = rate
+            except Exception as e:
+                print(f"Error processing gold table: {e}")
+
+        # Process silver rates
+        for table in silver_tables:
+            try:
+                rows = table.select("tr")
+                for row in rows:
+                    symbol_elem = row.select_one("#GoldSymbol")
+                    rate_elem = row.select_one("#GoldSell")
+                    if symbol_elem and rate_elem:
+                        symbol = symbol_elem.get_text().strip()
+                        rate = rate_elem.get_text().strip()
+                        if symbol and rate:
+                            # Add "Silver" prefix if not already present
+                            if "Silver" not in symbol:
+                                symbol = f"Silver {symbol}"
+                            rates[symbol] = rate
+            except Exception as e:
+                print(f"Error processing silver table: {e}")
+        # If nothing found with selector approach, try a more general approach
+        if len(rates) <= 1:
+            try:
+                # Find all spans with ID="GoldSymbol" and corresponding GoldSell values
+                symbol_elements = soup.select("span#GoldSymbol")
+                for symbol_elem in symbol_elements:
+                    # Find parent row and then find the rate element in that row
+                    row = symbol_elem.find_parent("tr")
+                    if row:
+                        rate_elem = row.select_one("span#GoldSell")
+                        if rate_elem:
+                            symbol = symbol_elem.get_text().strip()
+                            rate = rate_elem.get_text().strip()
+                            if symbol and rate:
+                                # Try to determine if it's gold or silver
+                                parent_container = symbol_elem.find_parent("table")
+                                parent_container = (
+                                    parent_container.find_parent("div")
+                                    if parent_container
+                                    else None
+                                )
+
+                                if parent_container and parent_container.get("id"):
+                                    parent_id = parent_container.get("id")
+                                    if (
+                                        "silverproduct" in parent_id
+                                        and "Silver" not in symbol
+                                    ):
+                                        symbol = f"Silver {symbol}"
+                                    elif (
+                                        "divProduct" in parent_id
+                                        and "Gold" not in symbol
+                                    ):
+                                        symbol = f"Gold {symbol}"
+
+                                rates[symbol] = rate
+            except Exception as e:
+                print(f"Error in general extraction approach: {e}")
+
+        # Add a marker to indicate we're using the fallback method
+        rates["fallback_used"] = True
+
+        # Return the collected rates
+        return rates
+
+    except Exception as e:
+        error_message = f"An error occurred during requests-based scraping: {e}"
+        print(error_message)
+        return {"error": error_message}
 
 
 # --- Function to get live rates ---
@@ -21,6 +146,41 @@ RATE_DICT = dict()
 def get_rates():
     """
     Get the live rates of Au and Ag from vickygold.in, handling dynamic content.
+    Primary approach uses Selenium, with a fallback to requests+BeautifulSoup.
+    """
+    # Try the Selenium approach first (works well locally)
+    selenium_result = get_rates_with_selenium()
+
+    # Check if Selenium approach failed with specific cloud-environment errors
+    if "error" in selenium_result:
+        error_msg = selenium_result["error"]
+
+        # Look for specific errors that indicate cloud environment issues
+        # These errors typically occur on Streamlit Cloud
+        if any(
+            err in error_msg
+            for err in [
+                "unexpectedly exited",
+                "chromedriver",
+                "Status code was: 127",
+                "unknown error: Chrome failed to start",
+                "timed out receiving message",
+                "cannot find Chrome binary",
+            ]
+        ):
+            print(
+                "Selenium approach failed with cloud environment error. Trying requests fallback..."
+            )
+            return get_rates_with_requests()
+
+    # Return Selenium results if no issues or if the error is unrelated to cloud environment
+    return selenium_result
+
+
+# Function to get rates with Selenium (original approach)
+def get_rates_with_selenium():
+    """
+    Original Selenium-based approach to get rates.
     """
     driver = None  # Initialize driver to None for the finally block
     try:
@@ -160,9 +320,9 @@ def get_rates():
                         "BeautifulSoup not available. Please install it with: pip install beautifulsoup4"
                     )
                 except Exception as e:
-                    print(f"Error during HTML content extraction: {e}")
-
-        # Return the collected rates
+                    print(
+                        f"Error during HTML content extraction: {e}"
+                    )  # Return the collected rates
         return rates
 
     except Exception as e:
@@ -289,7 +449,19 @@ with col_btn:
     if st.button("📊 Live Rates", use_container_width=True):
         with st.spinner("Fetching live rates...", show_time=True):
             rates_data = get_rates()
-            if "error" in rates_data:
+
+            # Check if data is from fallback method
+            if "fallback_used" in rates_data:
+                # Remove the marker flag before displaying
+                using_fallback = rates_data.pop("fallback_used", False)
+                st.session_state["live_rates"] = rates_data
+                st.session_state["last_fetch_error"] = None
+                st.session_state["using_fallback"] = True
+                with col_status:
+                    st.info(
+                        "Using alternative method to fetch rates. Some rates might not be available."
+                    )
+            elif "error" in rates_data:
                 st.session_state["live_rates"] = None
                 st.session_state["last_fetch_error"] = rates_data["error"]
                 with col_status:
@@ -299,6 +471,7 @@ with col_btn:
             else:
                 st.session_state["live_rates"] = rates_data
                 st.session_state["last_fetch_error"] = None
+                st.session_state["using_fallback"] = False
 
                 # Reset the user_modified_gold_rate flag when fetching new rates
                 # This allows the new rates to be applied to all pages
@@ -364,7 +537,12 @@ st.markdown("<div style='margin: 20px 0;'></div>", unsafe_allow_html=True)
 # Display timestamp as caption right below the Live Rates button
 if st.session_state["live_rates"] and "timestamp" in st.session_state["live_rates"]:
     timestamp = st.session_state["live_rates"]["timestamp"]
-    st.caption(f"Last updated: {timestamp}")
+
+    # Show which method was used to fetch rates
+    if "using_fallback" in st.session_state and st.session_state["using_fallback"]:
+        st.caption(f"Last updated: {timestamp} (using alternative method)")
+    else:
+        st.caption(f"Last updated: {timestamp}")
 
 # Add a success message to let users know rates are synchronized
 # This will show whether rates are from fetching or manual entry
