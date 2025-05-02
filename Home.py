@@ -7,13 +7,17 @@ import re
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     NoSuchElementException,
 )
+
+# Import webdriver-manager if available (but don't fail if not)
+try:
+    from webdriver_manager.chrome import ChromeDriverManager
+except ImportError:
+    ChromeDriverManager = None
 
 RATE_DICT = dict()
 
@@ -46,13 +50,26 @@ def get_rates_with_selenium():
             "--window-size=1920x1080"
         )  # Can sometimes help with element finding
 
-        # Setup the driver
-        driver = webdriver.Chrome(
-            service=Service(
-                ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
-            ),
-            options=options,
-        )
+        # Try the newer Selenium Manager approach first (Selenium 4.6.0+)
+        try:
+            # This approach uses Selenium Manager which automatically handles driver compatibility
+            driver = webdriver.Chrome(options=options)
+        except Exception as e:
+            # Fallback to webdriver-manager if the built-in manager fails
+            print(f"Selenium Manager failed: {e}. Falling back to webdriver-manager...")
+            # Force webdriver-manager to get the latest version
+            from webdriver_manager.chrome import ChromeDriverManager
+            from webdriver_manager.core.utils import ChromeType
+
+            # Use cache_valid_range=0 to force checking for the latest driver
+            driver = webdriver.Chrome(
+                service=Service(
+                    ChromeDriverManager(
+                        chrome_type=ChromeType.CHROMIUM, cache_valid_range=0
+                    ).install()
+                ),
+                options=options,
+            )
 
         # Get the dynamic content from the website
         driver.get("https://vickygold.in/Liverate.html")
@@ -264,6 +281,10 @@ st.markdown("Your one-stop solution for all your gold purchasing or selling need
 # --- Live Rates Section ---
 st.header("Live Gold & Silver Rates")
 st.caption("Source: vickygold.in")
+
+# st.info(
+#     "✅ Updated to support Chrome 134 and newer versions. Now uses Selenium's built-in driver manager."
+# )
 
 # Initialize session state
 if "live_rates" not in st.session_state:
