@@ -22,6 +22,44 @@ if "carat" not in st.session_state:
     st.session_state.carat = 22
 if "is_22k" not in st.session_state:
     st.session_state.is_22k = True
+if "user_modified_gold_rate" not in st.session_state:
+    st.session_state.user_modified_gold_rate = False
+if "calculate_with_tax" not in st.session_state:
+    st.session_state.calculate_with_tax = True
+
+
+# Perform calculation function
+def perform_calculation():
+    # Calculate values
+    (
+        hm_rate,
+        gold_charges,
+        making_charges,
+        hm_charges,
+        tax,
+        total_price,
+    ) = gold_sell(
+        st.session_state.gold_rate,
+        st.session_state.qty,
+        st.session_state.gold_weight,
+        st.session_state.making_charge_perc,
+        st.session_state.hm_charges_per_pc,
+        st.session_state.extra_charges,
+        st.session_state.calculate_with_tax,
+        st.session_state.carat,
+        st.session_state.is_22k,
+    )
+
+    # Update session state with calculated values
+    st.session_state.total_price = total_price
+    st.session_state.calculated_making_charges = making_charges
+    st.session_state.hm_rate = hm_rate
+    st.session_state.gold_charges = gold_charges
+    st.session_state.hm_charges = hm_charges
+    st.session_state.tax = tax
+
+    return hm_rate, gold_charges, making_charges, hm_charges, tax, total_price
+
 
 # Input fields
 with st.container():
@@ -30,14 +68,16 @@ with st.container():
 
     with col1:
         st.subheader("Input Fields")
+
+        # Toggle for gold rate type - direct assignment using widget output
         is_22k = st.toggle(
             "Is the gold rate converted in 22/18 Carat?",
             value=st.session_state.is_22k,
-            key="is_22k_buy",
-            on_change=lambda: setattr(
-                st.session_state, "is_22k", st.session_state.is_22k_buy
-            ),
+            key="is_22k_toggle",
         )
+
+        # Update session state with the new toggle value
+        st.session_state.is_22k = is_22k
 
         # Initialize the default rates for 22k and 24k
         default_22k_rate = 9000.00
@@ -45,39 +85,35 @@ with st.container():
 
         # Update rates if we have the 916 gold rate available
         if "gold_rate_916" in st.session_state:
-            # Use the 916 (22k) gold rate directly for 22k
-            default_22k_rate = float(
-                st.session_state["gold_rate_916"] / 10
-            )  # Convert from 100g to per gram
-            # Calculate 24k rate: (916 rate / 22 * 24)
+            default_22k_rate = float(st.session_state["gold_rate_916"] / 10)
             default_24k_rate = float((st.session_state["gold_rate_916"] / 10) / 22 * 24)
         elif "current_gold_rate_per_gram" in st.session_state:
-            # Fallback to the old calculation method
             default_22k_rate = float(
                 round((st.session_state["current_gold_rate_per_gram"] / 24.0) * 22.0)
             )
-            default_24k_rate = float(
-                st.session_state["current_gold_rate_per_gram"]
-            )  # Only update the session state rate when first loading the page or toggling the carat option
-        # Don't override user's manually entered rate
-        if is_22k and "user_modified_gold_rate" not in st.session_state:
-            st.session_state.gold_rate = default_22k_rate
-        elif not is_22k and "user_modified_gold_rate" not in st.session_state:
-            st.session_state.gold_rate = default_24k_rate
+            default_24k_rate = float(st.session_state["current_gold_rate_per_gram"])
 
-        def update_gold_rate():
-            st.session_state.gold_rate = st.session_state.gold_rate_buy
-            # Mark that the user has manually modified the gold rate
-            st.session_state.user_modified_gold_rate = True
+        # Only update the default rate if the toggle changed and user hasn't modified rate
+        if (
+            is_22k != st.session_state.is_22k
+            or "prev_toggle_state" not in st.session_state
+            or st.session_state.prev_toggle_state != is_22k
+        ) and not st.session_state.user_modified_gold_rate:
+            if is_22k:
+                st.session_state.gold_rate = default_22k_rate
+            else:
+                st.session_state.gold_rate = default_24k_rate
 
+        st.session_state.prev_toggle_state = is_22k
+
+        # Gold rate input - changes based on toggle state
         if is_22k:
             gold_rate = st.number_input(
                 "Enter the gold rate (22k/18k per gram)",
                 value=st.session_state.gold_rate,
                 step=0.01,
                 format="%.2f",
-                key="gold_rate_buy",
-                on_change=update_gold_rate,
+                key="gold_rate_input",
             )
         else:
             gold_rate = st.number_input(
@@ -85,73 +121,85 @@ with st.container():
                 value=st.session_state.gold_rate,
                 step=0.01,
                 format="%.2f",
-                key="gold_rate_buy",
-                on_change=update_gold_rate,
+                key="gold_rate_input",
             )
+
+        # Mark user modified if rate changed
+        if gold_rate != st.session_state.gold_rate:
+            st.session_state.user_modified_gold_rate = True
+
+        # Update session state with current gold rate
+        st.session_state.gold_rate = gold_rate
+
+        # Other inputs with direct assignment
         qty = st.number_input(
             "Enter the quantity of gold (items)",
             min_value=1,
             step=1,
-            placeholder=1,
             value=st.session_state.qty,
-            key="qty_buy",
-            on_change=lambda: setattr(
-                st.session_state, "qty", st.session_state.qty_buy
-            ),
+            key="qty_input",
         )
+        st.session_state.qty = qty
+
         weight = st.number_input(
             "Enter the weight of each item (grams)",
             value=st.session_state.gold_weight,
             step=0.001,
             format="%.3f",
-            key="weight_buy",
-            on_change=lambda: setattr(
-                st.session_state, "gold_weight", st.session_state.weight_buy
-            ),
+            key="weight_input",
         )
+        st.session_state.gold_weight = weight
+
         making_charge_perc = st.number_input(
             "Making charge percentage",
             value=st.session_state.making_charge_perc,
             step=0.001,
             format="%.3f",
-            key="making_charge_perc_buy",
-            on_change=lambda: setattr(
-                st.session_state,
-                "making_charge_perc",
-                st.session_state.making_charge_perc_buy,
-            ),
+            key="making_charge_input",
         )
+        st.session_state.making_charge_perc = making_charge_perc
         hm_charges_per_pc = st.number_input(
             "Hallmark charges per piece",
             value=st.session_state.hm_charges_per_pc,
-            key="hm_charges_per_pc_buy",
-            on_change=lambda: setattr(
-                st.session_state,
-                "hm_charges_per_pc",
-                st.session_state.hm_charges_per_pc_buy,
-            ),
+            key="hm_charges_input",
         )
+        st.session_state.hm_charges_per_pc = hm_charges_per_pc
+
         extra_charges = st.number_input(
             "Extra charges",
             value=st.session_state.extra_charges,
-            key="extra_charges_buy",
-            on_change=lambda: setattr(
-                st.session_state, "extra_charges", st.session_state.extra_charges_buy
-            ),
+            key="extra_charges_input",
         )
+        st.session_state.extra_charges = extra_charges
+
+        # Tax toggle
+        calculate_with_tax = st.toggle(
+            "Calculate with Tax (GST)",
+            value=st.session_state.calculate_with_tax,
+            key="calculate_with_tax_toggle",
+        )
+        st.session_state.calculate_with_tax = calculate_with_tax
+
+        if calculate_with_tax:
+            st.caption("GST (3%) will be applied to the calculation")
+        else:
+            st.caption("No GST will be applied to the calculation")
+
         carat = st.slider(
             "Select the final ornament purity (in carat)",
             min_value=1,
             max_value=24,
             step=1,
-            value=22,
-            key="carat_buy",
-            on_change=lambda: setattr(
-                st.session_state, "carat", st.session_state.carat_buy
-            ),
-        )  # Results
+            value=st.session_state.carat,
+            key="carat_slider",
+        )
+        st.session_state.carat = carat
+
+    # Results section in the second column
     with col2:
         st.subheader("Results")
+
+        # Perform calculation with current values
         (
             hm_rate,
             gold_charges,
@@ -166,28 +214,30 @@ with st.container():
             making_charge_perc,
             hm_charges_per_pc,
             extra_charges,
+            calculate_with_tax,  # Pass the tax toggle value
             carat,
             is_22k,
         )
 
         # Update session state with calculated values
         st.session_state.total_price = total_price
-        # Store the calculated making charges per gram for reference in other pages
         st.session_state.calculated_making_charges = making_charges
+
+        # Display results
         st.markdown("Gold Charges:")
-        col1, col2 = st.columns([1, 1], gap="small")
+        col1_disp, col2_disp = st.columns([1, 1], gap="small")
         with st.container():
-            with col1:
+            with col1_disp:
                 st.markdown(f""":orange[₹**{gold_charges:,.2f}**]""")
-            with col2:
+            with col2_disp:
                 st.markdown(f"""(₹**{hm_rate:,.2f}/gm.**)""")
 
         st.write("Making charges:")
-        col1, col2 = st.columns([1, 1], gap="small")
+        col1_disp, col2_disp = st.columns([1, 1], gap="small")
         with st.container():
-            with col1:
+            with col1_disp:
                 st.markdown(f""":green[₹ **{making_charges:,.2f}**]""")
-            with col2:
+            with col2_disp:
                 st.markdown(f"""**(₹{making_charges/weight:,.2f}/gm.)**""")
             if extra_charges:
                 st.caption(
@@ -196,21 +246,24 @@ with st.container():
                 )
 
         st.write("Hallmark Charges")
-        col1, col2 = st.columns([1, 1], gap="small")
+        col1_disp, col2_disp = st.columns([1, 1], gap="small")
         with st.container():
-            with col1:
+            with col1_disp:
                 st.markdown(f":green[₹**{hm_charges:,.2f}**]")
-            with col2:
-                st.markdown("""**(₹53/pc.)**""")
-
-        st.write("Tax (GST):")
-        col1, col2 = st.columns([1, 1], gap="small")
-        with st.container():
-            with col1:
-                st.markdown(f""":green[₹ **{tax:,.2f}**]""")
-            with col2:
-                st.markdown("""**(3%)**""")
-            st.caption(f"SGST: ₹{tax/2:,.2f} + CGST: ₹{tax/2:,.2f}")
+            with col2_disp:
+                st.markdown(f"""**(₹{hm_charges_per_pc}/pc.)**""")
+        if calculate_with_tax:
+            st.write("Tax (GST):")
+            col1_disp, col2_disp = st.columns([1, 1], gap="small")
+            with st.container():
+                with col1_disp:
+                    st.markdown(f""":green[₹ **{tax:,.2f}**]""")
+                with col2_disp:
+                    st.markdown("""**(3%)**""")
+                st.caption(f"SGST: ₹{tax/2:,.2f} + CGST: ₹{tax/2:,.2f}")
+        else:
+            st.write("Tax (GST):")
+            st.markdown(":green[₹ **0.00**] (Tax calculation disabled)")
 
         st.markdown("### Total Price:")
         st.markdown(f"""## :green[₹ **{total_price:,.2f}**]""")
@@ -236,7 +289,7 @@ with st.container():
                 "Extra charges are the charges levied on the ornament for adding extra features like stones, conch bangles etc."
             )
             st.caption(
-                f"Here we have used **{making_charge_perc}%** making charges, which is **₹{making_charges:,.2f}** and extra charges of **₹{extra_charges:,.2f}**."
+                f"Here we have used **{making_charge_perc:.3f}%** making charges, which is **₹{making_charges:,.2f}** and extra charges of **₹{extra_charges:,.2f}**."
             )
 
         col1, col2 = st.columns([1, 1], gap="small")
@@ -246,19 +299,25 @@ with st.container():
             st.markdown(
                 "The price of testing the purity of the ornament and assigning a unique ID (HUID) to the ornament."
             )
-            st.caption("The standard hallmark charges are **₹53/pc.**.")
+            st.caption(
+                f"The standard hallmark charges are **₹{hm_charges_per_pc}/pc.**"
+            )
 
         col1, col2 = st.columns([1, 1], gap="small")
         with col1:
             st.markdown("- **:green[Tax]**:")
         with col2:
-            st.markdown(
-                "State Goods and Services Tax (SGST) & Central Goods and Services Tax (CGST). This tax is levied on **:orange[Gold Charges]** + **:green[Making Charges]** + **:green[Hallmark Charges]**."
-            )
-            st.caption("The standard GST rate is **3%**. (1.5% SGST + 1.5% CGST)")
-            st.caption(
-                f"Here we have used **1.5%** SGST {tax/2:,.2f} + **1.5%** CGST {tax/2:,.2f} = **₹{tax:,.2f}**."
-            )
+            if calculate_with_tax:
+                st.markdown(
+                    "State Goods and Services Tax (SGST) & Central Goods and Services Tax (CGST). This tax is levied on **:orange[Gold Charges]** + **:green[Making Charges]** + **:green[Hallmark Charges]**."
+                )
+                st.caption("The standard GST rate is **3%**. (1.5% SGST + 1.5% CGST)")
+                st.caption(
+                    f"Here we have used **1.5%** SGST {tax/2:,.2f} + **1.5%** CGST {tax/2:,.2f} = **₹{tax:,.2f}**."
+                )
+            else:
+                st.markdown("Tax calculation is currently disabled.")
+                st.caption("No GST is being applied to this calculation.")
 
         col1, col2 = st.columns([1, 1], gap="small")
         with col1:

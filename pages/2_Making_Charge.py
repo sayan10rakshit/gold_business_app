@@ -22,6 +22,8 @@ if "carat" not in st.session_state:
     st.session_state.carat = 22
 if "is_22k" not in st.session_state:
     st.session_state.is_22k = True
+if "calculate_with_tax" not in st.session_state:
+    st.session_state.calculate_with_tax = True
 
 col1, col2 = st.columns([2, 1], gap="large")
 
@@ -119,7 +121,27 @@ with col1:
         key="no_pcs_mc",
         on_change=lambda: setattr(st.session_state, "qty", st.session_state.no_pcs_mc),
     )
-    gst = st.number_input("Enter the GST (in percentage)", value=3)
+
+    # Tax toggle
+    calculate_with_tax = st.toggle(
+        "Calculate with Tax (GST)",
+        value=st.session_state.calculate_with_tax,
+        key="calculate_with_tax_mc",
+        on_change=lambda: setattr(
+            st.session_state,
+            "calculate_with_tax",
+            st.session_state.calculate_with_tax_mc,
+        ),
+    )
+
+    # Set GST value based on tax toggle
+    gst = 3 if calculate_with_tax else 0
+
+    if calculate_with_tax:
+        st.caption(f"GST ({gst}%) will be applied to the calculation")
+    else:
+        st.caption("No GST will be applied to the calculation")
+
     extra_charges = st.number_input(
         "Enter the extra charges (if any)",
         value=st.session_state.extra_charges,
