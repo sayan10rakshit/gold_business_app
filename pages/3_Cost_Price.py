@@ -78,8 +78,11 @@ with st.container():
                 on_change=update_gold_rate,
             )
 
-        making_perc = st.number_input(
-            "Enter the making charge percentage", value=4.00, step=0.01
+        goldsmith_loss_perc = st.number_input(
+            "Enter the goldsmith loss percentage",
+            value=4.0000,
+            step=0.0001,
+            format="%.4f",
         )
 
         total_weight = st.number_input(
@@ -93,19 +96,12 @@ with st.container():
             ),
         )
 
-        keep_baseline_916 = st.toggle(
-            "Keep the baseline as 0.9166",
-            value=False,
+        baseline = st.number_input(
+            "Enter the baseline for making charge",
+            value=0.9200,
+            step=0.0001,
+            format="%.4f",
         )
-
-        if keep_baseline_916:
-            baseline = 22 / 24
-        else:
-            baseline = st.number_input(
-                "Enter the baseline for making charge",
-                value=0.920,
-                step=0.001,
-            )
 
         carat = st.slider(
             "Select the final ornament purity (in carat)",
@@ -131,14 +127,16 @@ with st.container():
     with col2:
         st.subheader("Results")
         (
-            pure_wt,
-            making_charge_wt,
-            actual_making_perc,
-            making_charges,
-            cp,
+            total_pure_wt,
+            goldsmith_loss_wt,
+            total_payable_wt,
+            excess_wt,
+            excess_wt_24k_price,
+            breakeven_making_perc,
+            cp_total,
         ) = cost_price_gold(
             gold_rate,
-            making_perc,
+            goldsmith_loss_perc,
             baseline,
             carat,
             extra_charges,
@@ -146,59 +144,26 @@ with st.container():
             is_22k,
         )
 
-        st.write("Pure Weight:")
-        st.markdown(f":green[**{pure_wt:,.5f} gm.**]")
-
-        st.write("Making Charge Wt.:")
         col1, col2 = st.columns([1, 1], gap="small")
         with col1:
-            st.markdown(f":green[**{making_charge_wt:,.5f} gm.**]")
+            st.write("Pure Weight:")
+            st.markdown(f":green[**{total_pure_wt:,.4f} gm.**]")
         with col2:
-            if keep_baseline_916:
-                pass
-            else:
-                default_making_charge_wt = (baseline - (carat / 24.0)) * total_weight
-                st.markdown(
-                    f"**({making_charge_wt - default_making_charge_wt:,.5f}gm + {default_making_charge_wt:,.5f}gm)**"
-                )
-        if not keep_baseline_916:
-            st.caption("Making Charge Wt. + Default Making Charge Wt.")
+            st.write("Goldsmith Loss Wt.:")
+            st.markdown(f":green[**{goldsmith_loss_wt:,.4f} gm.**]")
 
-        st.write("Actual Making Charge Perc.:")
+        st.write("### Total Payable Wt.:")
+        st.markdown(f"## :orange[**{total_payable_wt:,.4f} gm.**]")
         col1, col2 = st.columns([1, 1], gap="small")
         with col1:
-            st.markdown(f":green[**{actual_making_perc * 100:.4f}%**]")
+            st.write("Excess Wt. (Actual Making Charges):")
+            st.markdown(f":green[**{excess_wt:,.4f} gm.**]")
         with col2:
-            if keep_baseline_916:
-                pass
-            else:
-                st.markdown(
-                    f"**({making_perc:,.3f}% + {(baseline - (carat / 24.0))*100:,.3f}%)**"
-                )
-        if not keep_baseline_916:
-            st.caption("Making Perc. + Default Perc.")
+            st.write("Excess Wt. Price:")
+            st.markdown(f":green[**₹ {excess_wt_24k_price:,.2f}**]")
 
-        st.write("Actual Making Charges:")
-        col1, col2 = st.columns([1, 1], gap="small")
-        with col1:
-            st.markdown(f":green[₹ **{making_charges:,.2f}**]")
-        with col2:
-            if keep_baseline_916:
-                pass
-            else:
-                if is_22k:
-                    gold_rate_24k = gold_rate * (24 / 22.0)
-                else:
-                    gold_rate_24k = gold_rate
-                default_making_charges = (
-                    making_charges
-                    - gold_rate_24k * total_weight * (making_perc / 100.0)
-                )
-                st.markdown(
-                    f"**(₹ {making_charges - default_making_charges:,.2f} + ₹ {default_making_charges:,.2f})**"
-                )
-        if not keep_baseline_916:
-            st.caption("Making Charges + Default Making Charges")
+        st.write("Breakeven Making Charges (%):")
+        st.markdown(f":green[**{breakeven_making_perc:,.2f}%**]")
 
         st.markdown("### Cost Price:")
-        st.markdown(f"## :orange[₹ **{cp:,.2f}**]")
+        st.markdown(f"## :orange[₹ **{cp_total:,.2f}**]")

@@ -38,49 +38,6 @@ def gold_sell(
 # print(gold_sell())
 
 
-def cost_price_gold(
-    gold_rate=6500,
-    making_perc=3,
-    baseline=0.92,
-    carat=22,
-    extra_charges=0,
-    total_weight=1,
-    is_22k=True,
-):
-    """
-    The cost price of gold is the following
-            cost_of_24k_metal * (making_charge_wt + pure_wt)
-
-    making perc is levied on a per gram basis
-
-    For 22k gold, the total cp is calculated as (0.92 + making_perc/100) * 24k_rate * total_wt
-    Instead of 0.9166... the goldsmiths levy making perc on 0.92
-    WE NEED TO FIND A FIX FOR THIS BASELINE (0.92) TO MAKE THIS GENERIC
-    Thus for 1g of ornament, a goldsmith requires (0.92 + making_perc/100)g of pure gold
-    """
-
-    if is_22k:
-        gold_rate_24k = gold_rate * (24 / 22.0)
-    else:
-        gold_rate_24k = gold_rate
-    pure_wt = total_weight * (carat / 24.0)
-    actual_making_perc = baseline - (carat / 24.0) + making_perc / 100.0
-    making_charge_wt = total_weight * actual_making_perc
-    making_charges = making_charge_wt * gold_rate_24k
-    cp = (pure_wt + making_charge_wt) * gold_rate_24k + extra_charges
-
-    return (
-        pure_wt,
-        making_charge_wt,
-        actual_making_perc,
-        making_charges,
-        cp,
-    )
-
-
-# print(cost_price_gold())
-
-
 def gold_making_charges(
     gold_rate=6500,
     gold_weight=1,
@@ -117,3 +74,67 @@ def gold_making_charges(
 
 
 # print(gold_making_charges())
+
+
+def cost_price_gold(
+    gold_rate=9100,
+    goldsmith_loss_perc=3,
+    baseline=0.92,
+    carat=22,
+    extra_charges=0,
+    total_weight=1,
+    is_22k=True,
+):
+    """
+    The cost price of gold is the following
+            cost_of_24k_metal * (baseline * (total_weight + goldsmith_loss))
+    Where
+    - **"cost_of_24k_metal"** is the gold rate in 24k purity
+    - **"baseline"** is the purity level demanded by the goldsmith for making charges
+        - For 22k gold, this is 0.92 or 0.9166 (note that 0.92 is excess and is deliberately kept by some goldsmiths to slightly
+        hike the making charges; can be negotiated)
+        - for 18k gold, this is 0.755 or 0.75 and so on
+    - **"total_weight"** is the total weight of the gold in grams (or respective carat/purity)
+    - **"goldsmith_loss_perc"** is the percentage of gold (of respective ornament purity) that is charged by the goldsmith for designing the ornament
+
+    Returnables:
+    - **"total_pure_wt"**: The total pure weight of gold in grams (of respective carat/purity)
+    - **"goldsmith_loss_wt"**: The weight of gold (of respective carat/purity) that is charged by the goldsmith for designing the ornament
+    - **"total_payable_wt"**: The total weight of pure 24k gold that is payable to the goldsmith
+    - **"excess_wt"**: total_payable_wt - total_pure_wt; Basically the excess weight (in 24k) that the goldsmith charges for making charges
+    - **"breakeven_making_perc"**: The making charges that the shopkeeper needs to charge to break even, that is recover the 'excess_wt'
+    - **"cp_total"**: The total cost price of the gold ornament, including the extra charges (if any)
+    """
+
+    if is_22k:
+        gold_rate_24k = gold_rate / (22.0 / 24.0)
+    else:
+        gold_rate_24k = gold_rate
+    total_pure_wt = total_weight * (carat / 24.0)
+    goldsmith_loss_wt = total_weight * (
+        goldsmith_loss_perc / 100.0
+    )  # ? goldsmith loss in same purity as 'total_weight'
+    total_payable_wt = (
+        total_weight + goldsmith_loss_wt
+    ) * baseline  # ? this is the total payable to the goldsmith in 24k purity
+    excess_wt = (
+        total_payable_wt - total_pure_wt
+    )  # ? this is the excess weight (in 24k) that the goldsmith charges for making charges
+    breakeven_making_perc = ((total_payable_wt - total_pure_wt) / total_pure_wt) * 100.0
+
+    excess_wt_24k_price = excess_wt * gold_rate_24k
+    cost_price_gold = total_payable_wt * gold_rate_24k
+    cp_total = cost_price_gold + extra_charges
+
+    return (
+        total_pure_wt,
+        goldsmith_loss_wt,
+        total_payable_wt,
+        excess_wt,
+        excess_wt_24k_price,
+        breakeven_making_perc,
+        cp_total,
+    )
+
+
+# print(cost_price_gold())
