@@ -20,45 +20,12 @@ if "qty" not in st.session_state:
     st.session_state.qty = 1
 if "carat" not in st.session_state:
     st.session_state.carat = 22
-if "is_22k" not in st.session_state:
-    st.session_state.is_22k = True
+if "is_24k_rate" not in st.session_state:
+    st.session_state.is_24k_rate = False
 if "user_modified_gold_rate" not in st.session_state:
     st.session_state.user_modified_gold_rate = False
 if "calculate_with_tax" not in st.session_state:
     st.session_state.calculate_with_tax = True
-
-
-# Perform calculation function
-def perform_calculation():
-    # Calculate values
-    (
-        hm_rate,
-        gold_charges,
-        making_charges,
-        hm_charges,
-        tax,
-        total_price,
-    ) = gold_sell(
-        st.session_state.gold_rate,
-        st.session_state.qty,
-        st.session_state.gold_weight,
-        st.session_state.making_charge_perc,
-        st.session_state.hm_charges_per_pc,
-        st.session_state.extra_charges,
-        st.session_state.calculate_with_tax,
-        st.session_state.carat,
-        st.session_state.is_22k,
-    )
-
-    # Update session state with calculated values
-    st.session_state.total_price = total_price
-    st.session_state.calculated_making_charges = making_charges
-    st.session_state.hm_rate = hm_rate
-    st.session_state.gold_charges = gold_charges
-    st.session_state.hm_charges = hm_charges
-    st.session_state.tax = tax
-
-    return hm_rate, gold_charges, making_charges, hm_charges, tax, total_price
 
 
 # Input fields
@@ -69,47 +36,61 @@ with st.container():
     with col1:
         st.subheader("Input Fields")
 
-        # Toggle for gold rate type - direct assignment using widget output
-        is_22k = st.toggle(
-            "Is the gold rate converted in 22/18 Carat?",
-            value=st.session_state.is_22k,
-            key="is_22k_toggle",
+        # 1) Carat selection slider at the top
+        carat = st.slider(
+            "Select the ornament purity (in carat)",
+            min_value=1,
+            max_value=24,
+            step=1,
+            value=st.session_state.carat,
+            key="carat_slider",
         )
+        st.session_state.carat = carat
 
-        # Update session state with the new toggle value
-        st.session_state.is_22k = is_22k
+        # 2) Toggle for gold rate type
+        is_24k_rate = st.toggle(
+            f"Enter gold rate as 24k (otherwise as per {carat}k)",
+            value=st.session_state.is_24k_rate,
+            key="is_24k_rate_toggle",
+        )
+        st.session_state.is_24k_rate = is_24k_rate
 
-        # Initialize the default rates for 22k and 24k
-        default_22k_rate = 9000.00
+        # Initialize the default rates
+        default_carat_rate = 9000.00
         default_24k_rate = 9818.18  # Approximate 24k equivalent
 
-        # Update rates if we have the 916 gold rate available
+        # Update rates if we have external gold rate data available
         if "gold_rate_916" in st.session_state:
-            default_22k_rate = float(st.session_state["gold_rate_916"] / 10)
+            default_carat_rate = float(st.session_state["gold_rate_916"] / 10)
             default_24k_rate = float((st.session_state["gold_rate_916"] / 10) / 22 * 24)
         elif "current_gold_rate_per_gram" in st.session_state:
-            default_22k_rate = float(
-                round((st.session_state["current_gold_rate_per_gram"] / 24.0) * 22.0)
+            default_carat_rate = float(
+                round((st.session_state["current_gold_rate_per_gram"] / 24.0) * carat)
             )
             default_24k_rate = float(st.session_state["current_gold_rate_per_gram"])
 
         # Only update the default rate if the toggle changed and user hasn't modified rate
         if (
-            is_22k != st.session_state.is_22k
+            is_24k_rate != st.session_state.is_24k_rate
             or "prev_toggle_state" not in st.session_state
-            or st.session_state.prev_toggle_state != is_22k
+            or st.session_state.prev_toggle_state != is_24k_rate
+            or (
+                "prev_carat" in st.session_state
+                and st.session_state.prev_carat != carat
+            )
         ) and not st.session_state.user_modified_gold_rate:
-            if is_22k:
-                st.session_state.gold_rate = default_22k_rate
-            else:
+            if is_24k_rate:
                 st.session_state.gold_rate = default_24k_rate
+            else:
+                st.session_state.gold_rate = default_carat_rate
 
-        st.session_state.prev_toggle_state = is_22k
+        st.session_state.prev_toggle_state = is_24k_rate
+        st.session_state.prev_carat = carat
 
-        # Gold rate input - changes based on toggle state
-        if is_22k:
+        # 3) Gold rate input - changes based on toggle state
+        if is_24k_rate:
             gold_rate = st.number_input(
-                "Enter the gold rate (22k/18k per gram)",
+                "Enter the gold rate (24k per gram)",
                 value=st.session_state.gold_rate,
                 step=0.01,
                 format="%.2f",
@@ -117,7 +98,7 @@ with st.container():
             )
         else:
             gold_rate = st.number_input(
-                "Enter the gold rate (24k per gram)",
+                f"Enter the gold rate ({carat}k per gram)",
                 value=st.session_state.gold_rate,
                 step=0.01,
                 format="%.2f",
@@ -185,16 +166,6 @@ with st.container():
         else:
             st.caption("No GST will be applied to the calculation")
 
-        carat = st.slider(
-            "Select the final ornament purity (in carat)",
-            min_value=1,
-            max_value=24,
-            step=1,
-            value=st.session_state.carat,
-            key="carat_slider",
-        )
-        st.session_state.carat = carat
-
     # Results section in the second column
     with col2:
         st.subheader("Results")
@@ -207,6 +178,9 @@ with st.container():
             hm_charges,
             tax,
             total_price,
+            pure_gold_weight,
+            total_recouped_pure_weight,
+            making_charge_wt_pure,
         ) = gold_sell(
             gold_rate,
             qty,
@@ -216,7 +190,7 @@ with st.container():
             extra_charges,
             calculate_with_tax,  # Pass the tax toggle value
             carat,
-            is_22k,
+            is_24k_rate,  # is_22k is opposite of is_24k_rate
         )
 
         # Update session state with calculated values
@@ -325,4 +299,12 @@ with st.container():
         with col2:
             st.markdown(
                 "The final price of the ornament. This is **:orange[Gold Charges]** + **:green[Making Charges]** + **:green[Hallmark Charges]** + **:green[Tax]**."
+            )
+        col1, col2 = st.columns([1, 1], gap="small")
+        with col1:
+            st.markdown("- **:green[Pure Gold Weight Recouped]**:")
+        with col2:
+            # Add pure weight calculation information
+            st.markdown(
+                f"**Pure Wt.** ({pure_gold_weight:.4f} gm.) + **Excess Pure M.C. Wt.** ({making_charge_wt_pure:.4f} gm.) = **Total Recouped Pure Wt.** ({total_recouped_pure_weight:.4f} gm.)"
             )
