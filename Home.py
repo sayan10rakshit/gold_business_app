@@ -23,7 +23,7 @@ RATE_DICT = dict()
 
 
 # --- Function to get live rates ---
-@st.cache_data(ttl=60)  # Optional: Cache for 60 seconds to avoid rapid re-fetching
+@st.cache_data(ttl=5)  # Optional: Cache for 60 seconds to avoid rapid re-fetching
 def get_rates():
     """
     Get the live rates of Au and Ag from vickygold.in, handling dynamic content.
