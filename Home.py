@@ -327,6 +327,8 @@ with col_btn:
 
                 if "Gold 995 100gms" in list(rates_data.keys())[1]:
                     try:
+                        print(list(rates_data.keys()))
+                        print(list(rates_data.values()))
                         # Extract and clean the rate value
                         rate_str = list(rates_data.values())[1]
                         # Remove non-numeric characters except decimal point
