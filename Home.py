@@ -325,7 +325,7 @@ with col_btn:
                 if "user_modified_gold_rate" in st.session_state:
                     del st.session_state["user_modified_gold_rate"]
 
-                if "Gold 995 100gms Ready" in rates_data:
+                if "Gold 995 100gms" in rates_data:
                     try:
                         # Extract and clean the rate value
                         rate_str = rates_data["Gold 995 100gms Ready"]
