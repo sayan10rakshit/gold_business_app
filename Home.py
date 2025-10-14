@@ -325,10 +325,10 @@ with col_btn:
                 if "user_modified_gold_rate" in st.session_state:
                     del st.session_state["user_modified_gold_rate"]
 
-                if "Gold 995 100gms" in rates_data.keys()[1]:
+                if "Gold 995 100gms" in list(rates_data.keys())[1]:
                     try:
                         # Extract and clean the rate value
-                        rate_str = rates_data.values()[1]
+                        rate_str = list(rates_data.values())[1]
                         # Remove non-numeric characters except decimal point
                         clean_rate = "".join(
                             c for c in rate_str if c.isdigit() or c == "."
