@@ -23,7 +23,7 @@ RATE_DICT = dict()
 
 
 # --- Function to get live rates ---
-@st.cache_data(ttl=5)  # Optional: Cache for 60 seconds to avoid rapid re-fetching
+@st.cache_data(ttl=60)  # Optional: Cache for 60 seconds to avoid rapid re-fetching
 def get_rates():
     """
     Get the live rates of Au and Ag from vickygold.in, handling dynamic content.
@@ -325,12 +325,10 @@ with col_btn:
                 if "user_modified_gold_rate" in st.session_state:
                     del st.session_state["user_modified_gold_rate"]
 
-                if "Gold 995 100gms" in list(rates_data.keys())[1]:
+                if "Gold 995 100gms Ready" in rates_data:
                     try:
-                        print(list(rates_data.keys()))
-                        print(list(rates_data.values()))
                         # Extract and clean the rate value
-                        rate_str = list(rates_data.values())[1]
+                        rate_str = rates_data["Gold 995 100gms Ready"]
                         # Remove non-numeric characters except decimal point
                         clean_rate = "".join(
                             c for c in rate_str if c.isdigit() or c == "."
