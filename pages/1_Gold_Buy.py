@@ -14,6 +14,8 @@ if "hm_charges_per_pc" not in st.session_state:
     st.session_state.hm_charges_per_pc = 53
 if "extra_charges" not in st.session_state:
     st.session_state.extra_charges = 0.0
+if "total_before_tax" not in st.session_state:
+    st.session_state.total_before_tax = 0.0
 if "total_price" not in st.session_state:
     st.session_state.total_price = 0.0
 if "qty" not in st.session_state:
@@ -69,23 +71,12 @@ with st.container():
             )
             default_24k_rate = float(st.session_state["current_gold_rate_per_gram"])
 
-        # Only update the default rate if the toggle changed and user hasn't modified rate
-        if (
-            is_24k_rate != st.session_state.is_24k_rate
-            or "prev_toggle_state" not in st.session_state
-            or st.session_state.prev_toggle_state != is_24k_rate
-            or (
-                "prev_carat" in st.session_state
-                and st.session_state.prev_carat != carat
-            )
-        ) and not st.session_state.user_modified_gold_rate:
+        # Keep gold rate synchronized with live defaults unless the user overrides it manually
+        if not st.session_state.user_modified_gold_rate:
             if is_24k_rate:
                 st.session_state.gold_rate = default_24k_rate
             else:
                 st.session_state.gold_rate = default_carat_rate
-
-        st.session_state.prev_toggle_state = is_24k_rate
-        st.session_state.prev_carat = carat
 
         # 3) Gold rate input - changes based on toggle state
         if is_24k_rate:
@@ -177,6 +168,7 @@ with st.container():
             making_charges,
             hm_charges,
             tax,
+            total_before_tax,
             total_price,
             pure_gold_weight,
             total_recouped_pure_weight,
@@ -194,6 +186,7 @@ with st.container():
         )
 
         # Update session state with calculated values
+        st.session_state.total_before_tax = total_before_tax
         st.session_state.total_price = total_price
         st.session_state.calculated_making_charges = making_charges
 
@@ -227,6 +220,7 @@ with st.container():
             with col2_disp:
                 st.markdown(f"""**(₹{hm_charges_per_pc}/pc.)**""")
         if calculate_with_tax:
+            st.caption(f"Total before tax: ₹{total_before_tax:,.2f}")
             st.write("Tax (GST):")
             col1_disp, col2_disp = st.columns([1, 1], gap="small")
             with st.container():

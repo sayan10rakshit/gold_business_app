@@ -41,6 +41,7 @@ def gold_sell(
         making_charges,
         hm_charges,
         tax,
+        total_before_tax,
         total_price,
         pure_gold_weight,
         total_recouped_pure_weight,

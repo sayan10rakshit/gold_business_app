@@ -176,7 +176,7 @@ with st.container():
             st.markdown(f":green[**₹ {goldsmith_loss_wt_24k_price:,.2f}**]")
 
         st.write("Breakeven Making Charges (%):")
-        st.markdown(f":green[**{breakeven_making_perc:,.2f}%**]")
+        st.markdown(f"### :orange[**{breakeven_making_perc:,.2f}%**]")
 
         st.markdown("### Cost Price:")
         st.markdown(f"## :orange[₹ **{cp_total:,.2f}**]")

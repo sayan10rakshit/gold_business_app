@@ -23,7 +23,7 @@ RATE_DICT = dict()
 
 
 # --- Function to get live rates ---
-@st.cache_data(ttl=60)  # Optional: Cache for 60 seconds to avoid rapid re-fetching
+@st.cache_data(ttl=10)  # Optional: Cache for 10 seconds to avoid rapid re-fetching
 def get_rates():
     """
     Get the live rates of Au and Ag from vickygold.in, handling dynamic content.
@@ -75,7 +75,7 @@ def get_rates_with_selenium():
         driver.get("https://vickygold.in/Liverate.html")
 
         # Wait for the dynamic content to load
-        driver.implicitly_wait(10)  # Implicit wait for elements to appear initially
+        driver.implicitly_wait(6)  # Implicit wait for elements to appear initially
 
         # Get the current time in IST
         ist = pytz.timezone("Asia/Kolkata")
@@ -305,7 +305,7 @@ with col_btn:
     # minimal spacer to slightly nudge button
     st.write("")
     if st.button("📊 Live Rates", use_container_width=True):
-        with st.spinner("Fetching live rates...", show_time=True):
+        with st.spinner("Fetching live rates..."):
             rates_data = get_rates()
 
             # Check if there was an error fetching the rates
@@ -325,10 +325,16 @@ with col_btn:
                 if "user_modified_gold_rate" in st.session_state:
                     del st.session_state["user_modified_gold_rate"]
 
-                if "Gold 995 100gms Ready" in rates_data:
+                print(f"{rates_data=}")
+                gold_995_key = next(
+                    (key for key in rates_data if "gold 995 100gms" in key.lower()),
+                    None,
+                )
+
+                if gold_995_key:
                     try:
-                        # Extract and clean the rate value
-                        rate_str = rates_data["Gold 995 100gms Ready"]
+                        # Extract and clean the rate value (label may include dynamic suffixes)
+                        rate_str = rates_data[gold_995_key]
                         # Remove non-numeric characters except decimal point
                         clean_rate = "".join(
                             c for c in rate_str if c.isdigit() or c == "."
